@@ -1,0 +1,11 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf: ">=5.1.0"
+  idf_gpio_driver:
+    version: "dev-main"
+    git: git@github.com:RDobrinov/idf_gpio_driver.git
+
+verison: "1.0.0~0-dev1.0+git1.0"
+description: "Button events processing ESP-IDF component "
+url: "https://github.com/RDobrinov/idf_button_driver.git"
