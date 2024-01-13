@@ -24,9 +24,9 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_random.h"
-#include "esp_log.h"
+//#include "esp_log.h"
 
-#include "button_driver.h"
+#include "idf_button_driver.h"
 
 /**
  * @brief Type of single button work state
@@ -167,7 +167,6 @@ static void vBtnDrvTask(void *pvParameters) {
                 vTaskDelay(1);
             }
         } else { vTaskDelay(2); }   /* Button list is empty so do nothing */
-        //vTaskDelay(1);
     }
 }
 

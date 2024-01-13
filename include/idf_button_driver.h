@@ -23,7 +23,7 @@
 #define _BUTTON_DRIVER_H_
 
 #include "esp_event.h"
-#include "gpio_driver.h"
+#include "idf_gpio_driver.h"
 
 /**
  * @brief Type of single button configuration
