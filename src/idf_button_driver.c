@@ -313,7 +313,7 @@ void btn_drv_init(esp_event_loop_handle_t *btndrv_evt_loop) {
             }
             tsk_conf->x_LL_Semaphore = xSemaphoreCreateBinary();
             xSemaphoreGive(tsk_conf->x_LL_Semaphore);
-            xTaskCreate(vBtnDrvTask, "btndrvtsk", 2048, NULL, 15, &tsk_conf->btndrv_task_handle);
+            xTaskCreate(vBtnDrvTask, "btndrvtsk", 3072, NULL, 15, &tsk_conf->btndrv_task_handle);
         }
     }
 }
