@@ -37,7 +37,7 @@ typedef union {
         uint32_t btn_gpio_mode:3;   /*!< GPIO mode              */
     };
     uint32_t val;                   /*!< Container value        */
-} btn_drv_init_config_t;
+} btn_drv_config_t;
 
 /**
  * @brief Type of button control and notification event IDs

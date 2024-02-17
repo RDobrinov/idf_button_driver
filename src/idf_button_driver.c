@@ -45,7 +45,7 @@ typedef union {
  * @brief Type of single linked list payload data
 */
 typedef struct btn_drv_ll_data {
-    btn_drv_init_config_t _config;  /*!< Init configuration */
+    btn_drv_config_t _config;  /*!< Init configuration */
     TickType_t press;               /*!< Press tick value   */
     TickType_t release;             /*!< Release tick value */
     TickType_t last_change;         /*!< Last change value  */
@@ -63,17 +63,16 @@ typedef struct btn_drv_ll_node {
 /**
  * @brief Type of dirver configuration and state
 */
-typedef struct btn_drv_config {
+typedef struct btn_drv_state {
     btn_drv_ll_node_t *head_node;           /*!< Linked List head node pointer      */
-    btn_drv_ll_node_t *tail_node;           /*!< Linked List tail node pointer      */
     esp_event_loop_handle_t uevent_loop;    /*!< Button driver control event loop   */
     TaskHandle_t btndrv_task_handle;        /*!< Button driver task handle          */
     SemaphoreHandle_t x_LL_Semaphore;       /*!< Linked List change semaphore       */
-} btn_drv_config_t;
+} btn_drv_state_t;
 
 ESP_EVENT_DEFINE_BASE(BTNDRV_EVENT);
 
-static btn_drv_config_t *tsk_conf = NULL;
+static btn_drv_state_t *tsk_conf = NULL;
 
 static void vBtnDrvTask(void *pvParameters);
 static esp_err_t _event_post(int32_t event_id, const void *event_data, size_t event_data_size);
@@ -115,7 +114,7 @@ static void vBtnDrvTask(void *pvParameters) {
                             /* Button changed its last state */
                             ll_node->_node_data.status.last_state = btn_state;
                             #if (CONFIG_BTNDRV_EVENT_SEND_EXTENDED_INFO == 1)
-                            _event_post((btn_state == ll_node->_node_data._config.def_state)? BTNDRV_EVENT_BUTTON_RELEASE : BTNDRV_EVENT_BUTTON_PRESS, &(ll_node->_node_data._config), sizeof(btn_drv_init_config_t));
+                            _event_post((btn_state == ll_node->_node_data._config.def_state)? BTNDRV_EVENT_BUTTON_RELEASE : BTNDRV_EVENT_BUTTON_PRESS, &(ll_node->_node_data._config), sizeof(btn_drv_config_t));
                             #endif
                             /* Determinate change type (press/release)*/
                             if(btn_state == ll_node->_node_data._config.def_state) {
@@ -124,10 +123,10 @@ static void vBtnDrvTask(void *pvParameters) {
                                 uint32_t press_release = (uint32_t)ll_node->_node_data.release - (uint32_t)ll_node->_node_data.press;
                                 /* Checking for long click */
                                 if(press_release > CONFIG_BTNDRV_LLONG_CLICK_HOLD_TIME) {
-                                    _event_post(BTN_LLONG_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_init_config_t));
+                                    _event_post(BTN_LLONG_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_config_t));
                                 } else {
                                     if(press_release > CONFIG_BTNDRV_LONG_CLICK_HOLD_TIME) {
-                                        _event_post(BTN_LONG_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_init_config_t));
+                                        _event_post(BTN_LONG_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_config_t));
                                     } else {
                                         /* Not a long click, click counter incremented 
                                          * and monkey onboard event detected and filtered
@@ -146,7 +145,7 @@ static void vBtnDrvTask(void *pvParameters) {
                             /* No state change occur. Check and send a HOLD event if any */
                             if((btn_state != ll_node->_node_data._config.def_state) && ((current_tick - ll_node->_node_data.press) > CONFIG_BTNDRV_BUTTON_HOLD_HOLD_TIME))
                             {
-                                _event_post(BTN_HOLD_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_init_config_t));
+                                _event_post(BTN_HOLD_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_config_t));
                                 ll_node->_node_data.press = current_tick;
                             }
                         }
@@ -155,7 +154,7 @@ static void vBtnDrvTask(void *pvParameters) {
                             _event_post((1 == ll_node->_node_data.status.clicks) ? BTN_CLICK_EVENT 
                                     : (2 == ll_node->_node_data.status.clicks) ? BTN_DBL_CLICK_EVENT 
                                     : (3 == ll_node->_node_data.status.clicks) ? BTN_TRPL_CLICK_EVENT 
-                                    : BTN_MULTI_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_init_config_t));
+                                    : BTN_MULTI_CLICK_EVENT, &(ll_node->_node_data._config), sizeof(btn_drv_config_t));
                             ll_node->_node_data.status.clicks = 0UL;
                         }
                     }
@@ -198,11 +197,11 @@ static void _event_handler(void* arg, esp_event_base_t event_base, int32_t event
     if(BTNDRV_EVENT == event_base) {
         if(BTNDRV_EVENT_REG_BUTTON == event_id) {
             btn_drv_ll_node_t *new_node = (btn_drv_ll_node_t *)calloc(1, sizeof(btn_drv_ll_node_t));
-            new_node->_node_data._config.val = ((btn_drv_init_config_t *)event_data)->val;
+            new_node->_node_data._config.val = ((btn_drv_config_t *)event_data)->val;
             if(new_node->_node_data._config.btn_gpio_mode == GPIO_PULLUP_PULLDOWN) new_node->_node_data._config.btn_gpio_mode = GPIO_PULLUP_ONLY;
             new_node->_node_data._config.button_id = 0;            
-            if(gpio_drv_reserve(((btn_drv_init_config_t *)event_data)->btn_gpio_num)) {
-                new_node->_node_data._config.button_id = _get_new_button_id(((btn_drv_init_config_t *)event_data)->button_id);
+            if(gpio_drv_reserve(((btn_drv_config_t *)event_data)->btn_gpio_num)) {
+                new_node->_node_data._config.button_id = _get_new_button_id(((btn_drv_config_t *)event_data)->button_id);
             } else {
                 /* GPIO already claimed */
                 new_node->_node_data._config.btn_gpio_num = GPIO_NUM_MAX;
@@ -210,24 +209,17 @@ static void _event_handler(void* arg, esp_event_base_t event_base, int32_t event
             if((new_node->_node_data._config.btn_gpio_num == GPIO_NUM_MAX) || (new_node->_node_data._config.button_id == 0)) {
                 free(new_node);
                 new_node = NULL;
-                _event_post(BTNDRV_EVENT_REG_FAILED, event_data, sizeof(btn_drv_init_config_t));
+                _event_post(BTNDRV_EVENT_REG_FAILED, event_data, sizeof(btn_drv_config_t));
                 return;
             }
             new_node->_node_data.status.val = 0UL;
             /* Add new node to linked list structure */
             if(xSemaphoreTake(tsk_conf->x_LL_Semaphore, (TickType_t) 2) == pdTRUE) {
-                if(!tsk_conf->head_node) {
-                    tsk_conf->head_node = new_node;
-                    tsk_conf->head_node->_next_node = NULL;
-                    tsk_conf->tail_node = tsk_conf->head_node;
-                } else {
-                    tsk_conf->tail_node->_next_node = new_node;
-                    tsk_conf->tail_node = tsk_conf->tail_node->_next_node;
-                    tsk_conf->tail_node->_next_node = NULL;
-                }
+                new_node->_next_node = tsk_conf->head_node;
+                tsk_conf->head_node = new_node;
                 xSemaphoreGive(tsk_conf->x_LL_Semaphore);
-                ((btn_drv_init_config_t *)event_data)->button_id = new_node->_node_data._config.button_id;
-                _event_post(BTNDRV_EVENT_BUTTON_REGISTRED, event_data, sizeof(btn_drv_init_config_t));
+                ((btn_drv_config_t *)event_data)->button_id = new_node->_node_data._config.button_id;
+                _event_post(BTNDRV_EVENT_BUTTON_REGISTRED, event_data, sizeof(btn_drv_config_t));
             }
         }
         if(BTNDRV_EVENT_DEREG_BUTTON == event_id) {
@@ -236,16 +228,15 @@ static void _event_handler(void* arg, esp_event_base_t event_base, int32_t event
             btn_drv_ll_node_t *prev_ll_node = NULL;
             bool found = false;
             while(ll_node) {
-                found = (((btn_drv_init_config_t *)event_data)->button_id != 0) ? (ll_node->_node_data._config.button_id == ((btn_drv_init_config_t *)event_data)->button_id) 
-                        : (((btn_drv_init_config_t *)event_data)->btn_gpio_num == ll_node->_node_data._config.btn_gpio_num);
+                found = (((btn_drv_config_t *)event_data)->button_id != 0) ? (ll_node->_node_data._config.button_id == ((btn_drv_config_t *)event_data)->button_id) 
+                        : (((btn_drv_config_t *)event_data)->btn_gpio_num == ll_node->_node_data._config.btn_gpio_num);
                 if(found) {
                     if(prev_ll_node) {
                         prev_ll_node->_next_node = ll_node->_next_node;
-                        if(!prev_ll_node->_next_node) tsk_conf->tail_node = prev_ll_node; 
                     } else {
                         tsk_conf->head_node = ll_node->_next_node;
                     }
-                    *((btn_drv_init_config_t *)event_data) = ll_node->_node_data._config;
+                    *((btn_drv_config_t *)event_data) = ll_node->_node_data._config;
                     free(ll_node);
                     ll_node = NULL;
                 } else { 
@@ -253,15 +244,8 @@ static void _event_handler(void* arg, esp_event_base_t event_base, int32_t event
                     ll_node = ll_node->_next_node;
                 }
             }
-            _event_post((found) ? BTNDRV_EVENT_BUTTON_DEREGISTRED : BTNDRV_EVENT_DEREG_FAILED, event_data, sizeof(btn_drv_init_config_t));
+            _event_post((found) ? BTNDRV_EVENT_BUTTON_DEREGISTRED : BTNDRV_EVENT_DEREG_FAILED, event_data, sizeof(btn_drv_config_t));
         }
-        /*
-        btn_drv_ll_node_t *ll_node = tsk_conf->head_node;
-        while(ll_node) {
-            ESP_LOGE("bdrv", "[HN_%p]:[TN_%p]:[NN_%p][%04X]:GPIO%02d", (tsk_conf->head_node), (tsk_conf->tail_node), ll_node->_next_node, ll_node->_node_data._config.button_id, ll_node->_node_data._config.btn_gpio_num);
-            ll_node = ll_node->_next_node;
-        }
-        */
     }
     return;
 }
@@ -297,10 +281,9 @@ static uint32_t _get_new_button_id(uint32_t req_id) {
 void btn_drv_init(esp_event_loop_handle_t *btndrv_evt_loop) {
     gpio_drv_init();
     if(!tsk_conf) {
-        tsk_conf = (btn_drv_config_t *)calloc(1, sizeof(btn_drv_config_t));
+        tsk_conf = (btn_drv_state_t *)calloc(1, sizeof(btn_drv_state_t));
         if(tsk_conf) {
             tsk_conf->head_node = NULL;
-            tsk_conf->tail_node = NULL;
             tsk_conf->uevent_loop = (btndrv_evt_loop) ? *btndrv_evt_loop : NULL;
             if(tsk_conf->uevent_loop) {
                 /* Register internal handler to user loop */
