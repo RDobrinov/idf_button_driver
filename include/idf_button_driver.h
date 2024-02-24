@@ -26,7 +26,7 @@
 #include "idf_gpio_driver.h"
 
 /**
- * @brief Type of single button configuration
+ * @brief Type of single button configuration and event data
 */
 typedef union {
     struct {
