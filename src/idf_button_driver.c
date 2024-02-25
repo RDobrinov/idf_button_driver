@@ -237,6 +237,7 @@ static void _event_handler(void* arg, esp_event_base_t event_base, int32_t event
                         tsk_conf->head_node = ll_node->_next_node;
                     }
                     *((btn_drv_config_t *)event_data) = ll_node->_node_data._config;
+                    gpio_drv_free(ll_node->_node_data._config.btn_gpio_num);
                     free(ll_node);
                     ll_node = NULL;
                 } else { 

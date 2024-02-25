@@ -3,9 +3,10 @@ dependencies:
   ## Required IDF version
   idf: ">=5.1.0"
   idf_gpio_driver:
-    version: "dev-main"
+    version: "main"
     git: git@github.com:RDobrinov/idf_gpio_driver.git
 
-verison: "1.0.0~1-dev1.0+git1.0"
+## version: "1.0.0~1-dev1.0+git1.0"
+version: "1.2.0"
 description: "Button events processing ESP-IDF component "
 url: "https://github.com/RDobrinov/idf_button_driver.git"

@@ -29,7 +29,7 @@ idf.py create-manifest
 ```
 dependencies:
   ...
-  idf_wifi_manager:
+  idf_button_driver:
     version: "main"
     git: git@github.com:RDobrinov/idf_button_driver.git
   ...
